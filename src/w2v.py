@@ -21,14 +21,10 @@ def w2v(dfs,f,L=128):
     print("save w2v to {}".format(os.path.join('data',f+".{}d".format(L))))
     pickle.dump(w2v,open(os.path.join('data',f+".{}d".format(L)),'wb'))  
 
-
-
-
-
 if __name__ == "__main__":
     train_df=pd.read_pickle('data/train_user.pkl')
     test_df=pd.read_pickle('data/test_user.pkl')
-
+    #训练word2vector，维度为128
     w2v([train_df,test_df],'sequence_text_user_id_ad_id',L=128)
     w2v([train_df,test_df],'sequence_text_user_id_creative_id',L=128)
     w2v([train_df,test_df],'sequence_text_user_id_advertiser_id',L=128)

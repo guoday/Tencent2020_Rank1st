@@ -45,8 +45,7 @@ def merge_files():
 
 
 if __name__ == "__main__":
-    click_df,train_user,test_user=merge_files()
-    
+    click_df,train_user,test_user=merge_files() 
     #保存预处理文件
     print("preprocess done! saving data...")
     click_df.to_pickle("data/click.pkl")

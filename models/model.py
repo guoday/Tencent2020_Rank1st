@@ -21,8 +21,9 @@ class Model(nn.Module):
         super(Model, self).__init__()
         args.out_size=len(args.dense_features)
         self.dropout = nn.Dropout(args.hidden_dropout_prob)
-        #text layer
+        self.args=args
 
+        #创建BERT模型，并且导入预训练模型
         config = RobertaConfig.from_pretrained(args.pretrained_model_path) 
         config.output_hidden_states=True
         args.hidden_size=config.hidden_size
@@ -35,7 +36,7 @@ class Model(nn.Module):
         self.text_embeddings=nn.Embedding.from_pretrained(torch.load(os.path.join(args.pretrained_model_path, "embeddings.bin"))['weight'],freeze=True)             
         args.out_size+=args.hidden_size*2
         
-
+        #创建Decoder模型，随机初始化
         config = RobertaConfig()        
         config.num_hidden_layers=4
         config.intermediate_size=2048
@@ -48,10 +49,8 @@ class Model(nn.Module):
         self.text_linear_1.apply(self._init_weights)  
         self.norm= nn.BatchNorm1d(args.text_dim_1+args.hidden_size)
         args.out_size+=1024    
-            
-        self.args=args
 
-        #linear layer
+        #创建分类器，随机初始化
         self.classifier=ClassificationHead(args)
         self.classifier.apply(self._init_weights)
         
@@ -65,43 +64,39 @@ class Model(nn.Module):
             
     def forward(self,dense_features,text_features,text_ids,text_masks,text_features_1,text_masks_1,labels=None):
         outputs=[]
-        if len(self.args.dense_features)!=0:
-            outputs.append(dense_features.float())         
+        #获取浮点数，作为分类器的输入
+        outputs.append(dense_features.float())         
+        #获取BERT模型的hidden state，并且做max pooling和mean pooling作为分类器的输入
+        text_masks=text_masks.float()
+        text_embedding=self.text_embeddings(text_ids).view(text_ids.size(0),text_ids.size(1),-1)
+        text_features=torch.cat((text_features.float(),text_embedding),-1)
+        text_features=torch.relu(self.text_linear(self.dropout(text_features)))
+        hidden_states=self.text_layer(inputs_embeds=text_features,attention_mask=text_masks)[0]
+        embed_mean=(hidden_states*text_masks.unsqueeze(-1)).sum(1)/text_masks.sum(1).unsqueeze(-1)
+        embed_mean=embed_mean.float()
+        embed_max=hidden_states+(1-text_masks).unsqueeze(-1)*(-1e10)
+        embed_max=embed_max.max(1)[0].float()
+        outputs.append(embed_mean)
+        outputs.append(embed_max)
+        #获取decoder的hidden state，并且做max pooling和mean pooling作为分类器的输入
+        text_masks_1=text_masks_1.float()
+        text_features_1=torch.cat((text_features_1.float(),hidden_states),-1)
+        bs,le,dim=text_features_1.size()
+        text_features_1=self.norm(text_features_1.view(-1,dim)).view(bs,le,dim)
+        text_features_1=torch.relu(self.text_linear_1(text_features_1))
+        hidden_states=self.text_layer_1(inputs_embeds=text_features_1,attention_mask=text_masks_1)[0]
+        embed_mean=(hidden_states*text_masks_1.unsqueeze(-1)).sum(1)/text_masks_1.sum(1).unsqueeze(-1)
+        embed_mean=embed_mean.float()
+        embed_max=hidden_states+(1-text_masks_1).unsqueeze(-1)*(-1e10)
+        embed_max=embed_max.max(1)[0].float()
+        outputs.append(embed_mean)
+        outputs.append(embed_max)            
 
-        if len(self.args.text_features)!=0:
-            text_masks=text_masks.float()
-            text_embedding=self.text_embeddings(text_ids).view(text_ids.size(0),text_ids.size(1),-1)
-            text_features=torch.cat((text_features.float(),text_embedding),-1)
-            text_features=torch.relu(self.text_linear(self.dropout(text_features)))
-            #position_ids=(text_masks*0).long()
-            hidden_states=self.text_layer(inputs_embeds=text_features,attention_mask=text_masks)[0]
-            embed_mean=(hidden_states*text_masks.unsqueeze(-1)).sum(1)/text_masks.sum(1).unsqueeze(-1)
-            embed_mean=embed_mean.float()
-            embed_max=hidden_states+(1-text_masks).unsqueeze(-1)*(-1e10)
-            embed_max=embed_max.max(1)[0].float()
-            outputs.append(embed_mean)
-            outputs.append(embed_max)
-
-            
-
-        if len(self.args.text_features_1)!=0:
-            text_masks_1=text_masks_1.float()
-            text_features_1=torch.cat((text_features_1.float(),hidden_states),-1)
-            bs,le,dim=text_features_1.size()
-            text_features_1=self.norm(text_features_1.view(-1,dim)).view(bs,le,dim)
-            text_features_1=torch.relu(self.text_linear_1(text_features_1))
-            hidden_states=self.text_layer_1(inputs_embeds=text_features_1,attention_mask=text_masks_1)[0]
-            embed_mean=(hidden_states*text_masks_1.unsqueeze(-1)).sum(1)/text_masks_1.sum(1).unsqueeze(-1)
-            embed_mean=embed_mean.float()
-            embed_max=hidden_states+(1-text_masks_1).unsqueeze(-1)*(-1e10)
-            embed_max=embed_max.max(1)[0].float()
-            outputs.append(embed_mean)
-            outputs.append(embed_max)            
-
-        
+        #将特征输入分类器，得到20分类的logits
         final_hidden_state=torch.cat(outputs,-1)
         logits=self.classifier(final_hidden_state)
         
+        #返回loss或概率结果
         if labels is not None:
             loss_fct = CrossEntropyLoss()
             loss = loss_fct(logits, labels)
@@ -116,7 +111,6 @@ class Model(nn.Module):
             
 class ClassificationHead(nn.Module):
     """Head for sentence-level classification tasks."""
-
     def __init__(self, args):
         super().__init__()
         self.norm= nn.BatchNorm1d(args.out_size)

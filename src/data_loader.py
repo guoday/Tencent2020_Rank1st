@@ -29,8 +29,9 @@ class TextDataset(Dataset):
         return len(self.label)
 
     def __getitem__(self, i):  
+        #标签信息
         label=self.label[i]
-        
+        #BERT的输入特征
         if len(self.args.text_features)==0:
             text_features=0
             text_masks=0
@@ -50,7 +51,7 @@ class TextDataset(Dataset):
                     except:
                         text_ids[w_idx,idx]=self.args.vocab['unk']
                 begin_dim=end_dim
-                
+        #decoder的输入特征        
         if len(self.args.text_features_1)==0:
             text_features_1=0
             text_masks_1=0
@@ -69,8 +70,7 @@ class TextDataset(Dataset):
                         text_features_1[w_idx,begin_dim:end_dim]=v
                         text_masks_1[w_idx]=1                    
                 begin_dim=end_dim
-                
-                
+        #浮点数特征                 
         if len(self.args.dense_features)==0:
             dense_features=0
         else:

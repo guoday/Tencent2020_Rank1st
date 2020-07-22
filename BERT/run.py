@@ -53,13 +53,6 @@ logger = logging.getLogger(__name__)
 MODEL_CLASSES = {
     'roberta': (RobertaConfig, RobertaModel, RobertaTokenizer),
 }
-def hash_(key,value,vocab_num):
-    s='key_'+str(key)+' value_'+str(value)
-    seed=131
-    h=0
-    for i in s:
-        h = (h * seed) + ord(i)
-    return abs(h)%vocab_num
 
 class TextDataset(Dataset):
     def __init__(self, args,df,embedding_table):
@@ -67,8 +60,6 @@ class TextDataset(Dataset):
         self.embedding_table=embedding_table
         self.args=args
         self.vocab=[list(x) for x in args.vocab]
-
-
 
     def __len__(self):
         return len(self.text_features[0])
@@ -79,6 +70,7 @@ class TextDataset(Dataset):
         text_masks=np.zeros(self.args.block_size) 
         text_label=np.zeros((self.args.block_size,len(self.args.text_features)),dtype=np.int64)-100
         begin_dim=0
+        #选择20%的token进行掩码，其中80%设为[mask], 10%设为[UNK],10%随机选择
         for idx,x in enumerate(self.args.text_features):
             end_dim=begin_dim+x[2]
             for word_idx,word in enumerate(self.text_features[idx][i].split()[:self.args.block_size]):
@@ -123,18 +115,17 @@ def set_seed(args):
         torch.cuda.manual_seed_all(args.seed)
 
 def train(args, train_dataset,dev_dataset, model):
-    
+    #设置dataloader
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
     train_sampler = RandomSampler(train_dataset)
-
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size,num_workers=4)
     t_total = args.max_steps
     args.num_train_epochs = args.max_steps // (len(train_dataloader) // args.gradient_accumulation_steps) + 1
 
+    #设置优化器
     model.to(args.device)
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()     
-    # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ['bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
         {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
@@ -161,12 +152,12 @@ def train(args, train_dataset,dev_dataset, model):
             raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
         model, optimizer = amp.initialize(model, optimizer, opt_level=args.fp16_opt_level)
 
-    # multi-gpu training (should be after apex fp16 initialization)
+    # 多GPU设置
     if args.n_gpu > 1:
         model = torch.nn.DataParallel(model)
 
  
-    # Train!
+    # 训练
     logger.info("***** Running training *****")
     logger.info("  Num examples = %d", len(train_dataset)* (
                     torch.distributed.get_world_size() if args.local_rank != -1 else 1))
@@ -180,9 +171,8 @@ def train(args, train_dataset,dev_dataset, model):
     
     global_step = args.start_step
     tr_loss, logging_loss,avg_loss,tr_nb = 0.0, 0.0,0.0,0
-    # model.resize_token_embeddings(len(tokenizer))
     model.zero_grad()
-    set_seed(args)  # Added here for reproducibility (even between python 2 and 3)
+    set_seed(args)
  
     for idx in range(args.start_epoch, int(args.num_train_epochs)): 
         for step, batch in enumerate(train_dataloader):
@@ -191,7 +181,7 @@ def train(args, train_dataset,dev_dataset, model):
             loss = model(inputs,inputs_ids,masks,labels)
 
             if args.n_gpu > 1:
-                loss = loss.mean()  # mean() to average on multi-gpu parallel training
+                loss = loss.mean()
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
 
@@ -206,7 +196,7 @@ def train(args, train_dataset,dev_dataset, model):
             tr_loss += loss.item()
             
    
-                
+            
             if (step + 1) % args.gradient_accumulation_steps == 0:
                 optimizer.step()
                 optimizer.zero_grad()
@@ -221,6 +211,7 @@ def train(args, train_dataset,dev_dataset, model):
                     logging_loss = tr_loss
                     tr_nb=global_step
 
+                #验证
                 if args.local_rank in [-1, 0] and args.save_steps > 0 and global_step % args.save_steps == 0:
                     checkpoint_prefix = 'checkpoint'
                     if args.evaluate_during_training:  # Only evaluate when single GPU otherwise metrics may not average well
@@ -232,6 +223,8 @@ def train(args, train_dataset,dev_dataset, model):
 
                     if not os.path.exists(output_dir):
                         os.makedirs(output_dir)
+
+                    #保存模型
                     model_to_save = model.module.encoder if hasattr(model,'module') else model.encoder  # Take care of distributed/parallel training
                     model_to_save.save_pretrained(output_dir)
                     logger.info("Saving model checkpoint to %s", output_dir)
@@ -268,7 +261,6 @@ def train(args, train_dataset,dev_dataset, model):
 
 def evaluate(args,  model, eval_dataset):
     args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
-    # Note that DistributedSampler samples randomly
     eval_sampler = SequentialSampler(eval_dataset)
     eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size,num_workers=4)
 
@@ -288,9 +280,7 @@ def evaluate(args,  model, eval_dataset):
     result = {
         "perplexity": float(perplexity)
     }
-
-
-
+    
     return result
 
 
@@ -399,7 +389,7 @@ def main():
     args.n_gpu = torch.cuda.device_count()
     args.device = device
 
-    # Setup logging
+    # 设置log信息
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
                         level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN)
@@ -407,9 +397,10 @@ def main():
                    args.local_rank, device, args.n_gpu, bool(args.local_rank != -1), args.fp16)
 
 
-    # Set seed
+    # 设置随机种子
     set_seed(args)
 
+    # 判断是否有checkpoint，从而继续预训练
     args.start_epoch = 0
     args.start_step = 0
     checkpoint_last = os.path.join(args.output_dir, 'checkpoint-last')
@@ -425,6 +416,8 @@ def main():
 
     
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+
+
     base_path="../data"
     text_features=[      
     [base_path+"/sequence_text_user_id_product_id.128d",'sequence_text_user_id_product_id',128,True],
@@ -437,11 +430,13 @@ def main():
     [base_path+"/sequence_text_user_id_click_times.128d",'sequence_text_user_id_click_times',128,True],
     ]
 
+    #读取训练数据
     train_df=pd.read_pickle(os.path.join(base_path,'train_user.pkl'))
     test_df=pd.read_pickle(os.path.join(base_path,'test_user.pkl'))
     dev_data=train_df.iloc[-10000:]
     train_data=train_df.iloc[:-10000].append(test_df)  
     
+    #创建输入端的词表，每个域最多保留10w个id
     try:
         dic=pickle.load(open(os.path.join(args.output_dir, 'vocab.pkl'),'rb'))
     except:
@@ -466,7 +461,8 @@ def main():
                     if cont<10:
                         print(x[0],dic[x[0]])
             print(cont)
-        
+     
+    #读取或重新创建BERT   
     if args.model_name_or_path is not None:
         config = config_class.from_pretrained(args.config_name if args.config_name else args.model_name_or_path,
                                               cache_dir=args.cache_dir if args.cache_dir else None)        
@@ -487,16 +483,19 @@ def main():
         config.vocab_dim_v1=64
         logger.info("%s",config)   
     logger.info("Training/evaluation parameters %s", args)
+
+    #保存输入端词表
     args.vocab_dic=dic
     pickle.dump(dic,open(os.path.join(args.output_dir, 'vocab.pkl'),'wb'))
-    # Training
-    
+
+    #读取word embedding
     import gensim
     embedding_table=[]
     for x in text_features:
         print(x)
         embedding_table.append(pickle.load(open(x[0],'rb')))
 
+    #创建输出端词表，每个域最多保留10w个id
     vocab=[]
     for feature in text_features:
         conter=Counter()
@@ -511,7 +510,8 @@ def main():
         for idx,x in enumerate(most_common):
             dic[x[0]]=idx+1    
         vocab.append(dic)
-        
+     
+    #设置参数  
     args.vocab_size_v1=config.vocab_size_v1
     args.vocab_dim_v1=config.vocab_dim_v1
     args.vocab=vocab
@@ -520,12 +520,15 @@ def main():
     train_dataset=TextDataset(args,train_data,embedding_table)
     dev_dataset=TextDataset(args,dev_data,embedding_table)
     args.vocab_size=[len(x)+1 for x in vocab]
+    #创建模型
     model=Model(model,config,args)   
+    #如果有checkpoint，读取checkpoint
     if os.path.exists(checkpoint_last) and os.listdir(checkpoint_last):
         logger.info("Load linear from %s",os.path.join(checkpoint_last, "linear.bin"))
         model.text_linear.load_state_dict(torch.load(os.path.join(checkpoint_last, "linear.bin"))) 
         logger.info("Load embeddings from %s",os.path.join(checkpoint_last, "embeddings.bin"))
-        model.text_embeddings.load_state_dict(torch.load(os.path.join(checkpoint_last, "embeddings.bin")))          
+        model.text_embeddings.load_state_dict(torch.load(os.path.join(checkpoint_last, "embeddings.bin")))   
+    #训练      
     train(args, train_dataset,dev_dataset, model)
 
 
