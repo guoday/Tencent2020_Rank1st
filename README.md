@@ -8,7 +8,15 @@
 - Linux Ubuntu 16.04, 256G内存 (128G内存应该也行)，4*p100
 - pip install transformers==2.8.0 pandas gensim scikit-learn filelock gdown
 
-### 2. 数据下载
+### 2. 运行完整过程
+
+可运行以下脚本，运行整个过程并生成结果。或按照3-7节的说明依次运行。
+
+```shell
+bash run.sh
+```
+
+### 3. 数据下载
 
 通过该[网站](https://drive.google.com/file/d/15onAobxlim_uRUNWSMQuK6VxDsmGTtp4/view?usp=sharing)下载数据集到data目录，或运行下面的命令进行下载
 
@@ -18,7 +26,7 @@ unzip data.zip
 rm data.zip
 ```
 
-### 3. 数据预处理
+### 4. 数据预处理
 
 合并所有文件，并分为点击记录文件(click.pkl)，用户文件(train_user.pkl/test_user.pkl)
 
@@ -26,13 +34,13 @@ rm data.zip
 python src/preprocess.py
 ```
 
-### 4. 特征提取
+### 5. 特征提取
 
 ```shell
 python src/extract_features.py
 ```
 
-### 5. 预训练 Word2Vector 与 BERT
+### 6. 预训练 Word2Vector 与 BERT
 
 这里提供两种方式获得预训练权重: 重新预训练或下载预训练好的权重 
 
@@ -84,10 +92,10 @@ python run.py \
     --save_total_limit 500 \
     --seed 123456 \
     --tensorboard_dir saved_models/tensorboard_logs    
-rm -r bert-base    
-cp -r saved_models/checkpoint-last bert-base
-rm bert-base/optimizer.pt
-cp saved_models/vocab.pkl bert-base/vocab.pkl
+rm -r saved_models/bert-base    
+cp -r saved_models/checkpoint-last saved_models/bert-base
+rm saved_models/bert-base/optimizer.pt
+cp saved_models/vocab.pkl saved_models/bert-base/vocab.pkl
 cd ..
 ```
 
@@ -100,7 +108,7 @@ mv bert-base BERT/
 rm bert-base.zip
 ```
 
-### 6. 训练模型
+### 7. 训练模型
 
 ```shell
 mkdir saved_models
@@ -127,7 +135,7 @@ done
 python src/merge_submission.py
 ```
 
-### 7. 不同规模的预训练模型
+### 8. 不同规模的预训练模型
 
 由于此次比赛融合了不同规模大小的预训练模型，在此也提供不同规模的预训练模型: 
 

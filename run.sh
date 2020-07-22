@@ -1,3 +1,6 @@
+sudo pip install gdown
+pip install transformers==2.8.0 pandas gensim scikit-learn filelock gdown numpy
+
 #数据下载
 gdown https://drive.google.com/uc?id=15onAobxlim_uRUNWSMQuK6VxDsmGTtp4
 unzip data.zip 
