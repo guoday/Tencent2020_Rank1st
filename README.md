@@ -84,10 +84,10 @@ python run.py \
     --save_total_limit 500 \
     --seed 123456 \
     --tensorboard_dir saved_models/tensorboard_logs    
-rm -r saved_models/bert-base    
-cp -r saved_models/checkpoint-last saved_models/bert-base
-rm saved_models/bert-base/optimizer.pt
-cp saved_models/vocab.pkl saved_models/bert-base/vocab.pkl
+rm -r bert-base    
+cp -r saved_models/checkpoint-last bert-base
+rm bert-base/optimizer.pt
+cp vocab.pkl bert-base/vocab.pkl
 cd ..
 ```
 
