@@ -5,7 +5,7 @@
 ### 1. 环境配置
 
 - Pytorch
-- Linux Ubuntu 16.04, 256G内存 (128G内存应该也行)，4*p100
+- Linux Ubuntu 16.04, 256G内存，4*p100
 - pip install transformers==2.8.0 pandas gensim scikit-learn filelock gdown
 
 ### 2. 运行完整过程
@@ -153,4 +153,3 @@ gdown https://drive.google.com/uc?id=1yQeh3O6E_98srPqTVwAnVbr1v-X0A7R-
 #bert-xl
 gdown https://drive.google.com/uc?id=1jViHtyljOJxxeOBmxn9tOZg_hmWOj0L2
 ```
-
