@@ -87,7 +87,7 @@ python run.py \
 rm -r bert-base    
 cp -r saved_models/checkpoint-last bert-base
 rm bert-base/optimizer.pt
-cp vocab.pkl bert-base/vocab.pkl
+cp saved_models/vocab.pkl bert-base/vocab.pkl
 cd ..
 ```
 
