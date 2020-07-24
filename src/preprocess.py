@@ -23,7 +23,7 @@ def merge_files():
     train_user['age']=train_user['age']-1
     train_user['gender']=train_user['gender']-1
     test_user=pd.read_csv("data/test/click_log.csv").drop_duplicates('user_id')[['user_id']].reset_index(drop=True)
-    test_user=test_user.sort_values(by='user_id')
+    test_user=test_user.sort_values(by='user_id').reset_index(drop=True)
     test_user['age']=-1
     test_user['gender']=-1
 
