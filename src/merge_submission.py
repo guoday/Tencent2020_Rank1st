@@ -35,7 +35,7 @@ print(age_df)
 
 gender_dfs=[pd.read_csv(f)[['user_id']+['gender_'+str(i) for i in range(2)]] for f in gender_files]
 gender_df=pd.concat(gender_dfs,0)
-gender_df=pd.DataFrame(gender_df.groupby('user_id').mean()).reset_index()
+gender_df=pd.DataFrame(gender_df.groupby('user_id').mean()).sort_values('user_id').reset_index()
 gender_df['predicted_gender']=np.argmax(gender_df[['gender_'+str(i) for i in range(2)]].values,-1)+1
 print(gender_df)
 
