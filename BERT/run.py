@@ -232,6 +232,7 @@ def train(args, train_dataset,dev_dataset, model):
                     logger.info("Saving linear to %s",os.path.join(args.output_dir, "linear.bin"))  
                     model_to_save_linear = model.module.text_linear if hasattr(model, 'module') else model.text_linear
                     torch.save(model_to_save_linear.state_dict(), os.path.join(output_dir, "linear.bin"))
+                    logger.info("Saving embeddings to %s",os.path.join(args.output_dir, "embeddings.bin"))  
                     model_to_save_embeddings = model.module.text_embeddings if hasattr(model, 'module') else model.text_embeddings
                     torch.save(model_to_save_embeddings.state_dict(), os.path.join(output_dir, "embeddings.bin"))
                     
@@ -241,11 +242,16 @@ def train(args, train_dataset,dev_dataset, model):
                         os.makedirs(last_output_dir)
                     model_to_save.save_pretrained(last_output_dir)
                     logger.info("Saving linear to %s",os.path.join(last_output_dir, "linear.bin"))  
-                    model_to_save = model.module.text_linear if hasattr(model, 'module') else model.text_linear
+                    model_to_save_linear = model.module.text_linear if hasattr(model, 'module') else model.text_linear
                     torch.save(model_to_save_linear.state_dict(), os.path.join(last_output_dir, "linear.bin"))
+                    logger.info("Saving embeddings to %s",os.path.join(last_output_dir, "embeddings.bin"))  
                     model_to_save_embeddings = model.module.text_embeddings if hasattr(model, 'module') else model.text_embeddings
                     torch.save(model_to_save_embeddings.state_dict(), os.path.join(last_output_dir, "embeddings.bin"))
-                    
+                    logger.info("Saving model to %s",os.path.join(last_output_dir, "model.bin"))  
+                    model_to_save = model.module if hasattr(model, 'module') else model
+                    torch.save(model_to_save.state_dict(), os.path.join(last_output_dir, "model.bin"))
+
+
                     idx_file = os.path.join(last_output_dir, 'idx_file.txt')
                     with open(idx_file, 'w', encoding='utf-8') as idxf:
                         idxf.write(str( idx) + '\n')
@@ -524,10 +530,9 @@ def main():
     model=Model(model,config,args)   
     #如果有checkpoint，读取checkpoint
     if os.path.exists(checkpoint_last) and os.listdir(checkpoint_last):
-        logger.info("Load linear from %s",os.path.join(checkpoint_last, "linear.bin"))
-        model.text_linear.load_state_dict(torch.load(os.path.join(checkpoint_last, "linear.bin"))) 
-        logger.info("Load embeddings from %s",os.path.join(checkpoint_last, "embeddings.bin"))
-        model.text_embeddings.load_state_dict(torch.load(os.path.join(checkpoint_last, "embeddings.bin")))   
+        logger.info("Load model from %s",os.path.join(checkpoint_last, "model.bin"))
+        model.load_state_dict(torch.load(os.path.join(checkpoint_last, "model.bin"))) 
+
     #训练      
     train(args, train_dataset,dev_dataset, model)
 
