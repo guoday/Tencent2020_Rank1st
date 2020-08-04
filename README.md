@@ -159,7 +159,7 @@ python src/merge_submission.py
 
 [BERT-small](https://drive.google.com/file/d/1bDneO-YhBs5dx-9qC-WrBf3jUc_QCIYn/view?usp=sharing), [BERT-base](https://drive.google.com/file/d/1ToAJwl_oRAeRNyYF_FK0B2APVXlPFTlq/view?usp=sharing), [BERT-large](https://drive.google.com/file/d/1yQeh3O6E_98srPqTVwAnVbr1v-X0A7R-/view?usp=sharing), [BERT-xl](https://drive.google.com/file/d/1jViHtyljOJxxeOBmxn9tOZg_hmWOj0L2/view?usp=sharing)
 
-其中bert-base效果最好, 只使用bert-base模型即可超过第二名的成绩。
+其中bert-base效果最好
 
 ```shell
 #bert-small
