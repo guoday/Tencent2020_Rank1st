@@ -18,7 +18,8 @@ def merge_files():
     
     #合并用户信息
     print("merge user files...")
-    train_user=pd.read_csv("data/train_preliminary/user.csv").append(pd.read_csv("data/train_semi_final/user.csv"))
+    train_user=pd.read_csv("data/train_preliminary/user.csv")
+    train_user=train_user.append(pd.read_csv("data/train_semi_final/user.csv"))
     train_user=train_user.reset_index(drop=True)
     train_user['age']=train_user['age']-1
     train_user['gender']=train_user['gender']-1

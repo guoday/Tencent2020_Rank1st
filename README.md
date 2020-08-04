@@ -8,7 +8,25 @@
 - Linux Ubuntu 16.04, 256G内存，4*p100
 - pip install transformers==2.8.0 pandas gensim scikit-learn filelock gdown
 
-### 2. 运行完整过程
+### 2. 模型介绍
+
+![avatar](picture/model.png)
+
+![avatar](picture/mlm.png)
+
+![avatar](picture/fusion-layer.png)
+
+![avatar](picture/output.png)
+
+### 3.低配置资源建议
+
+1) 内存不足或者只是想简单跑下完整代码，请只使用初赛数据:
+
+去掉src/prepocess.py的8, 15, 22行
+
+2)如果显存不足，请下载10中的bert-small模型，并调整batch size
+
+### 4. 运行完整过程
 
 可运行以下脚本，运行整个过程并生成结果。或按照3-7节的说明依次运行。
 
@@ -16,7 +34,7 @@
 bash run.sh
 ```
 
-### 3. 数据下载
+### 5. 数据下载
 
 通过该[网站](https://drive.google.com/file/d/15onAobxlim_uRUNWSMQuK6VxDsmGTtp4/view?usp=sharing)下载数据集到data目录，或运行下面的命令进行下载
 
@@ -26,7 +44,7 @@ unzip data.zip
 rm data.zip
 ```
 
-### 4. 数据预处理
+### 6. 数据预处理
 
 合并所有文件，并分为点击记录文件(click.pkl)，用户文件(train_user.pkl/test_user.pkl)
 
@@ -34,13 +52,13 @@ rm data.zip
 python src/preprocess.py
 ```
 
-### 5. 特征提取
+### 7. 特征提取
 
 ```shell
 python src/extract_features.py
 ```
 
-### 6. 预训练 Word2Vector 与 BERT
+### 8. 预训练 Word2Vector 与 BERT
 
 这里提供两种方式获得预训练权重: 重新预训练或下载预训练好的权重 
 
@@ -108,7 +126,7 @@ mv bert-base BERT/
 rm bert-base.zip
 ```
 
-### 7. 训练模型
+### 9. 训练模型
 
 ```shell
 mkdir saved_models
@@ -135,7 +153,7 @@ done
 python src/merge_submission.py
 ```
 
-### 8. 不同规模的预训练模型
+### 10. 不同规模的预训练模型
 
 由于此次比赛融合了不同规模大小的预训练模型，在此也提供不同规模的预训练模型: 
 
