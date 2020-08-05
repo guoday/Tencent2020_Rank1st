@@ -36,7 +36,7 @@ class Model(nn.Module):
         self.text_embeddings=nn.Embedding.from_pretrained(torch.load(os.path.join(args.pretrained_model_path, "embeddings.bin"))['weight'],freeze=True)             
         args.out_size+=args.hidden_size*2
         
-        #创建Decoder模型，随机初始化
+        #创建fusion-layer模型，随机初始化
         config = RobertaConfig()        
         config.num_hidden_layers=4
         config.intermediate_size=2048
@@ -78,7 +78,7 @@ class Model(nn.Module):
         embed_max=embed_max.max(1)[0].float()
         outputs.append(embed_mean)
         outputs.append(embed_max)
-        #获取decoder的hidden state，并且做max pooling和mean pooling作为分类器的输入
+        #获取fusion-layer的hidden state，并且做max pooling和mean pooling作为分类器的输入
         text_masks_1=text_masks_1.float()
         text_features_1=torch.cat((text_features_1.float(),hidden_states),-1)
         bs,le,dim=text_features_1.size()
