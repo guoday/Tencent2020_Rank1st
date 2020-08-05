@@ -262,6 +262,10 @@ def train(args, train_dataset,dev_dataset, model):
                     step_file = os.path.join(last_output_dir, 'step_file.txt')
                     with open(step_file, 'w', encoding='utf-8') as stepf:
                         stepf.write(str(global_step) + '\n')
+            if args.max_steps > 0 and global_step > args.max_steps:
+                break
+        if args.max_steps > 0 and global_step > args.max_steps:
+            break
 
 
 
