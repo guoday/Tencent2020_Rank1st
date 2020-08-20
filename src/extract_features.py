@@ -143,8 +143,8 @@ def kfold_sequence(train_df,test_df,log_data,pivot):
     tmp=pd.concat(tmps,axis=0).reset_index()
     tmp=log[[pivot,'fold','user_id']].merge(tmp,on=[pivot,'fold'],how='left')
     tmp=tmp.fillna(-1)
-    # fixme: 为什么要带上fold index的信息
-    tmp[pivot+'_fold']=tmp[pivot]*10+tmp['fold']   
+    #注： 需要带fold信息， 因为index==0的信息是由 [1, 4] 的数据统计出来的
+    tmp[pivot+'_fold']=tmp[pivot]*10+tmp['fold']
     del log
     del tmps
     gc.collect() 
@@ -160,6 +160,7 @@ def kfold_sequence(train_df,test_df,log_data,pivot):
     for f in kfold_features:
         tmp[f]=tmp[f].apply(lambda x:round(x,4))   
     #将每条记录年龄性别分布转成w2v形式的文件
+    #注： 维度12，是因为age有10类， 性别有2类，总共是12维，这里的seq信息其实是每个pivot特征的性别年龄分布组成的序列
     with open('data/sequence_text_user_id_'+pivot+'_fold'+".{}d".format(12),'w') as f:
         f.write(str(len(tmp))+' '+'12'+'\n')
         for item in tmp[[pivot+'_fold']+kfold_features].values:

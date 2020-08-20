@@ -16,7 +16,9 @@ from sklearn.preprocessing import LabelEncoder, MinMaxScaler, StandardScaler
 from sklearn.model_selection import StratifiedKFold
 base_path="data"
 #定义浮点数特征
-dense_features=['user_id__size', 'user_id_ad_id_unique', 'user_id_creative_id_unique', 'user_id_advertiser_id_unique', 'user_id_industry_unique', 'user_id_product_id_unique', 'user_id_time_unique', 'user_id_click_times_sum', 'user_id_click_times_mean', 'user_id_click_times_std']
+dense_features=['user_id__size', 'user_id_ad_id_unique', 'user_id_creative_id_unique', 'user_id_advertiser_id_unique',
+                'user_id_industry_unique', 'user_id_product_id_unique', 'user_id_time_unique', 'user_id_click_times_sum',
+                'user_id_click_times_mean', 'user_id_click_times_std']
 for l in ['age_{}'.format(i) for i in range(10)]+['gender_{}'.format(i) for i in range(2)]:
     for f in ['creative_id','ad_id','product_id','advertiser_id','industry']:  
         dense_features.append(l+'_'+f+'_mean')
@@ -33,6 +35,7 @@ text_features=[
 [base_path+"/sequence_text_user_id_click_times.128d",'sequence_text_user_id_click_times',128], 
 ]
 #定义用户点击的人工构造序列特征
+#注： 每个pivot的年龄性别分布组成的序列
 text_features_1=[       
 [base_path+"/sequence_text_user_id_creative_id_fold.12d",'sequence_text_user_id_creative_id_fold',12],
 [base_path+"/sequence_text_user_id_ad_id_fold.12d",'sequence_text_user_id_ad_id_fold',12],
