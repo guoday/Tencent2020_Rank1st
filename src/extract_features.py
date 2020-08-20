@@ -10,18 +10,26 @@ from gensim.models import Word2Vec
 from sklearn import preprocessing
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler, StandardScaler
 
+"""
+dfs: 多个df组成的list
+f1: feature1
+f2: feature2
+agg: agg算子
+log: click_log (三个log的merge)
+"""
 def get_agg_features(dfs,f1,f2,agg,log):    
     #判定特殊情况
     if type(f1)==str:
         f1=[f1]
     if agg!='size':
+        # f1在上一个if中已经变为list
         data=log[f1+[f2]]
     else:
         data=log[f1] 
     f_name='_'.join(f1)+"_"+f2+"_"+agg     
     #聚合操作    
     if agg=="size":
-        tmp = pd.DataFrame(data.groupby(f1).size()).reset_index()
+        tmp = pd.DataFrame(data.groupby(f1).size()).reset_index() # f1出现几次
     elif agg=="count":
         tmp = pd.DataFrame(data.groupby(f1)[f2].count()).reset_index()
     elif agg=="mean":
@@ -53,7 +61,12 @@ def get_agg_features(dfs,f1,f2,agg,log):
     gc.collect()
     return [f_name]
 
-
+"""
+dfs: 多个df组成的list
+f1: feature1
+f2: feature2
+log: click_log (三个log的merge)
+"""
 def sequence_text(dfs,f1,f2,log):
     f_name='sequence_text_'+f1+'_'+f2
     print(f_name)
@@ -61,6 +74,7 @@ def sequence_text(dfs,f1,f2,log):
     dic,items={},[]
     for item in log[[f1,f2]].values:
         try:
+            # item[0]: user_id; item[1]: ad_id
             dic[item[0]].append(str(item[1]))
         except:
             dic[item[0]]=[str(item[1])]      
@@ -81,6 +95,7 @@ def sequence_text(dfs,f1,f2,log):
     del temp
     del items
     del dic
+    gc.collect()
     return [f_name]
 
 def kfold(train_df,test_df,log_data,pivot):
@@ -89,6 +104,7 @@ def kfold(train_df,test_df,log_data,pivot):
     log=log_data[kfold_features+['user_id',pivot,'fold']]
     tmps=[]
     for fold in range(6):
+        # 0-4： 如果fold==i, 用其他4份统计； 5： 用[0,4]来统计
         tmp = pd.DataFrame(log[(log['fold'] != fold) & (log['fold'] != 5)].groupby(pivot)[kfold_features].mean()).reset_index()
         tmp.columns=[pivot]+kfold_features
         tmp['fold']=fold
@@ -126,7 +142,8 @@ def kfold_sequence(train_df,test_df,log_data,pivot):
         tmps.append(tmp)
     tmp=pd.concat(tmps,axis=0).reset_index()
     tmp=log[[pivot,'fold','user_id']].merge(tmp,on=[pivot,'fold'],how='left')
-    tmp=tmp.fillna(-1)   
+    tmp=tmp.fillna(-1)
+    # fixme: 为什么要带上fold index的信息
     tmp[pivot+'_fold']=tmp[pivot]*10+tmp['fold']   
     del log
     del tmps
@@ -155,9 +172,9 @@ def kfold_sequence(train_df,test_df,log_data,pivot):
 
 if __name__ == "__main__":
     #读取数据
-    click_log=pd.read_pickle('data/click.pkl')
-    train_df=pd.read_pickle('data/train_user.pkl')
-    test_df=pd.read_pickle('data/test_user.pkl')
+    click_log=pd.read_pickle('data/click.pkl') # 三个日志的merge
+    train_df=pd.read_pickle('data/train_user.pkl') # train uid\age\sex
+    test_df=pd.read_pickle('data/test_user.pkl') # test uid\age\sex
     print(click_log.shape,train_df.shape,test_df.shape)
     ################################################################################
     #获取聚合特征
@@ -197,12 +214,13 @@ if __name__ == "__main__":
     #获取K折统计特征，求出用户点击的所有记录的年龄性别平均分布
     #赋值index,训练集为0-4，测试集为5
     print("Extracting Kflod feature...")
+    # FIXME： 为何这里要 drop_duplicates
     log=click_log.drop_duplicates(['user_id','creative_id']).reset_index(drop=True)
     del click_log
     gc.collect()
     log['cont']=1
-    train_df['fold']=train_df.index%5
-    test_df['fold']=5
+    train_df['fold']=train_df.index%5 #0-4
+    test_df['fold']=5 # 5
     df=train_df.append(test_df)[['user_id','fold']].reset_index(drop=True)
     log=log.merge(df,on='user_id',how='left')
     del df
