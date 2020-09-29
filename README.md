@@ -10,13 +10,13 @@
 
 ### 2. 模型介绍
 
-![avatar](picture/model.png)
+![Alt text](picture/model.png)
 
-![avatar](picture/mlm.png)
+![Alt text](picture/mlm.png)
 
-![avatar](picture/fusion-layer.png)
+![Alt text](picture/fusion-layer.png)
 
-![avatar](picture/output.png)
+![Alt text](picture/output.png)
 
 ### 3. 低配置资源建议
 
