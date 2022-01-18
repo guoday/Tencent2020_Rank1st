@@ -17,7 +17,7 @@ def w2v(dfs,f,L=128):
         for line in df[f].values:
             sentences.append(line.split())
     print("Sentence Num {}".format(len(sentences)))
-    w2v=Word2Vec(sentences,size=L, window=8,min_count=1,sg=1,workers=32,iter=10)
+    w2v=Word2Vec(sentences,vector_size=L, window=8,min_count=1,sg=1,workers=32,epochs=10)
     print("save w2v to {}".format(os.path.join('data',f+".{}d".format(L))))
     pickle.dump(w2v,open(os.path.join('data',f+".{}d".format(L)),'wb'))  
 
